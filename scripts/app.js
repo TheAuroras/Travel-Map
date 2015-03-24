@@ -3,7 +3,7 @@
 'use strict';
 
 (function() {
-    var db = 'YOUR-DB.firebaseio.com';
+    var db = 'YOURDB.firebaseio.com';
     var READONLY = false;
 
     var app = angular.module('TravelMap', ['firebase', 'leaflet-directive']);
@@ -33,6 +33,10 @@
                 map: {
                     enable: ['click'],
                     logic: 'emit'
+                },
+                marker: {
+                    enable: ['click'],
+                    logic: 'emit'
                 }
             },
             users: [],
@@ -59,6 +63,26 @@
         var markers = $firebaseArray(ref);
 
         // display markers
+        var deleteMarker = function (e) {
+            var id = e.target.options.title;
+            var record = markers.$getRecord(id);
+            markers.$remove(record).then(function (ref) { });
+            this.setOpacity(0); // hide marker
+        };
+
+        var addMarker = function (marker, map, colour) {
+            var userMarker = L.AwesomeMarkers.icon({
+                markerColor: colour
+            });
+            return L.marker([marker.lat, marker.lng], {
+                    icon: userMarker,
+                    clickable: true,
+                    title: marker.$id
+                })
+                .on('click', deleteMarker)
+                .addTo(map);
+        };
+
         var displayMarkers = function (sync) {
             var m = sync;
             var isAdding = false;
@@ -70,18 +94,12 @@
             leafletData.getMap().then(function (map) {
                 if (isAdding) {
                     if ($scope.mapData.selectedColour === 'none') { return; }
-                    var userMarker = L.AwesomeMarkers.icon({
-                        markerColor: $scope.mapData.selectedColour
-                    });
-                    marker = L.marker([m.lat, m.lng], {icon: userMarker}).addTo(map);
+                    marker = addMarker(m, map, $scope.mapData.selectedColour);
                     return;
                 }
                 angular.forEach(m, function (marker, key) {
                     if (!marker.lng || !marker.lat) { return; }
-                    var userMarker = L.AwesomeMarkers.icon({
-                        markerColor: marker.colour
-                    });
-                    marker = L.marker([marker.lat, marker.lng], {icon: userMarker}).addTo(map);
+                    marker = addMarker(marker, map, marker.colour);
                 });
             });
         };
